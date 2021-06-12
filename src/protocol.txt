@@ -1,0 +1,9 @@
+INITIAL START-UP:
+INTERFACE -> CONN
+BACKEND   -> <NUM CATEGORIES (4 bytes)>
+for each category...
+    BACKEND -> <CATEGORY NAME LEN (4bytes)>
+    BACKEND -> <CATEGORY NAME>
+    BACKEND -> <AMOUNT BUDGETED (double)>
+    BACKEND -> <AMOUNT UNSPENT (double)>
+INTERFACE -> T
