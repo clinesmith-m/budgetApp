@@ -5,7 +5,7 @@ import java.util.Date;
 import java.text.SimpleDateFormat;
 
 
-public class Logger
+public class TransactionLogger
 {
     public static void printSQLException(SQLException e)
     {
@@ -17,7 +17,7 @@ public class Logger
 
 
     Connection dbConn;
-    public Logger()
+    public TransactionLogger()
     {
         // Creating the db connection
 
