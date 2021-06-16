@@ -37,14 +37,7 @@ public class Main
         // Sending all spending categories
         private void sendCategories() {
             // Creating a category manager to handle interactions with the DB
-            CategoryManager catMan = null;
-            try {
-                catMan = new CategoryManager();
-            } catch (SQLException e) {
-                printSQLException(e);
-                parent.stopped = true;
-                System.exit(2);
-            }
+            CategoryManager catMan = new CategoryManager();
 
             try {
                 // Grabbing the number of categories and sending that first
@@ -87,14 +80,7 @@ public class Main
 
         // Modifies a single, already-existing spending category
         public void modCategory() {
-            CategoryManager catMan = null;
-            try {
-                catMan = new CategoryManager();
-            } catch (SQLException e) {
-                printSQLException(e);
-                parent.stopped = true;
-                System.exit(2);
-            }
+            CategoryManager catMan = new CategoryManager();
 
             // Receiving the data from the interface
             try {
@@ -118,14 +104,7 @@ public class Main
 
         // Creates a new spending category
         public void addCategory() {
-            CategoryManager catMan = null;
-            try {
-                catMan = new CategoryManager();
-            } catch (SQLException e) {
-                printSQLException(e);
-                parent.stopped = true;
-                System.exit(2);
-            }
+            CategoryManager catMan = new CategoryManager();
 
             // Receiving the data from the interface
             try {
@@ -221,8 +200,6 @@ public class Main
 
     public static void main(String[] args)
     {
-        TransactionLogger logman = new TransactionLogger();
-        logman.greet();
         Main protoListener = new Main();
         try {
             protoListener.listen();

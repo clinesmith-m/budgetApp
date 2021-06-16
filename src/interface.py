@@ -46,7 +46,7 @@ class GUI(tk.Tk):
                 break
 
         num = int.from_bytes(data, byteorder="big", signed=False)
-        print("RECEIVED NUM: " + str(num))
+        #print("RECEIVED NUM: " + str(num))
         return num
 
 
@@ -61,7 +61,7 @@ class GUI(tk.Tk):
 
         doub = struct.unpack("!d", data)
         doub = round(doub[0], 2)
-        print("RECEIVED DOUBLE: " + str(doub))
+        #print("RECEIVED DOUBLE: " + str(doub))
         return doub
 
     # Receives a string up to a newline, and returns the string
@@ -77,7 +77,7 @@ class GUI(tk.Tk):
             if len(retVal) == 0:
                 return 0
 
-        print("RECEIVED LINE: [" + msg.decode() + "]")
+        #print("RECEIVED LINE: [" + msg.decode() + "]")
         return msg.decode()
 
 
@@ -132,7 +132,7 @@ class GUI(tk.Tk):
 
     # Creating the visual elements for the spending categories
     def setCatLogs(self):
-        print("Running")
+        print("Setting cat logs")
         # Killing the widgets for the previous logs
         for widget in self.catLogs:
             widget.destroy()
@@ -145,13 +145,16 @@ class GUI(tk.Tk):
         self.catLogs.append(sectionLabel)
 
         # Adding the updated list of categories
+        print("Num Categories before: " + str(len(self.categories)))
         self.updateCategories()
+        print("Num Categories after: " + str(len(self.categories)))
 
         # Displaying all the budget categories
         catIndex += 1
         for cat in self.categories:
             labelText = cat[0] + "\n" + str(round(cat[1], 2))\
                             + "\n" + str(round(cat[2], 2)) 
+            print("Label text:[" + labelText + "]")
             currLabel = tk.Label(
                 text=labelText, 
                 background="white", 
@@ -374,7 +377,7 @@ class GUI(tk.Tk):
         modSock = self.makeConn()
         modSock.send("MCAT".encode())
         self.sendLine(modSock, catName)
-        self.sendDouble(modSock, catAmount)
+        self.sendDouble(modSock, catAmt)
 
         self.alertText.set("Category modified")
 
@@ -394,6 +397,14 @@ class GUI(tk.Tk):
         # Checking for invalid category names
         if catName == "":
             self.alertText.set("Name field left blank")
+
+        found = False
+        for cat in self.categories:
+            if catName == cat[0]:
+                found = True
+                break
+        if found:
+            self.alertText.set("Category already exists")
 
         # Adding the category
         addSock = self.makeConn()
