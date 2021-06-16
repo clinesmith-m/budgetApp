@@ -37,15 +37,16 @@ class GUI(tk.Tk):
 
 
     # Receives and returns 4 byte big-endian int
-    def recvInt(self, conn):
+    def recvInt(self, conn, intLen=4):
         data = b''
-        while (len(data) < 4):
-            retVal = conn.recv(4 - len(data))
+        while (len(data) < intLen):
+            retVal = conn.recv(intLen - len(data))
             data += retVal
             if len(retVal) == 0:
                 break
 
         num = int.from_bytes(data, byteorder="big", signed=False)
+        print("RECEIVED NUM: " + str(num))
         return num
 
 
@@ -60,25 +61,29 @@ class GUI(tk.Tk):
 
         doub = struct.unpack("!d", data)
         doub = round(doub[0], 2)
+        print("RECEIVED DOUBLE: " + str(doub))
         return doub
 
     # Receives a string up to a newline, and returns the string
     def recvLine(self, conn):
         msg = b''
-        while True:
-            ch = conn.recv(1)
-            msg += ch
-            if ch == b'\n':
-                break
-            elif len(ch) == 0:
+
+        # Getting a two-byte int representing the string's length
+        strLen = self.recvInt(conn, 2)
+
+        while len(msg) < strLen:
+            retVal = conn.recv(strLen - len(msg))
+            msg += retVal
+            if len(retVal) == 0:
                 return 0
 
-        return msg.decode()[2:-1]
+        print("RECEIVED LINE: [" + msg.decode() + "]")
+        return msg.decode()
 
 
-    # Sends 4 byte big-endian int
-    def sendInt(self, conn, rawNum):
-        num = int.to_bytes(rawNum, byteorder="big", signed=True, length=4)
+    # Sends variable length big-endian int
+    def sendInt(self, conn, rawNum, intLen=4):
+        num = int.to_bytes(rawNum, byteorder="big", signed=True, length=intLen)
         conn.send(num)
 
 
@@ -90,7 +95,7 @@ class GUI(tk.Tk):
 
     # Sends a string that ends with a newline
     def sendLine(self, conn, msg):
-        msg += "\n"
+        self.sendInt(conn, len(msg), 2)
         conn.send(msg.encode())
 
 
@@ -127,9 +132,10 @@ class GUI(tk.Tk):
 
     # Creating the visual elements for the spending categories
     def setCatLogs(self):
+        print("Running")
         # Killing the widgets for the previous logs
         for widget in self.catLogs:
-            widget.grid_forget()
+            widget.destroy()
         self.catLogs = []
 
         # Placing an overarching label over all the catLogs
@@ -373,6 +379,7 @@ class GUI(tk.Tk):
         self.alertText.set("Category modified")
 
         # Updating the interface
+        print("Update complete")
         self.setCatLogs()
 
 
@@ -396,6 +403,7 @@ class GUI(tk.Tk):
         self.alertText.set("Category added")
 
         # Updating the interface
+        print("Update complete")
         self.setCatLogs()
 
 

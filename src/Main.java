@@ -26,38 +26,6 @@ public class Main
         protected DataOutputStream toInterface = null;
         protected DataInputStream fromInterface = null;
 
-        // Creating a readline function to work around the InputStream.readLine
-        // deprecation
-        protected String readLine() {
-            // Making a byte array to hold the string data
-            byte[] bString = new byte[64];
-            int index = 0;
-            try {
-                byte endChar = (byte) '\n';
-                while (true) {
-                    byte currByte = fromInterface.readByte();
-                    if (currByte != endChar) {
-                        bString[index] = currByte;
-                        index++;
-                    } else {
-                        break;
-                    }
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-                System.exit(1);
-            }
-
-            String line = "";
-            try {
-                line = new String(bString, 0, index, "UTF-8");
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
-            }
-
-            return line;
-        }
-
         public ConnHandler(Socket clientSock, Main parent) {
             this.clientSock = clientSock;
             this.parent = parent;
@@ -96,8 +64,7 @@ public class Main
                         // Getting each category and sending the data for each to the
                         // interface
                         for (CategoryManager.CatRecord rec : catMan.getRecords()) {
-                            String nameStr = rec.name + "\n";
-                            toInterface.writeUTF(nameStr);
+                            toInterface.writeUTF(rec.name);
                             toInterface.writeDouble(rec.budgeted);
                             toInterface.writeDouble(rec.spent);
                         }
@@ -109,7 +76,6 @@ public class Main
                 } catch (SQLException e) {
                     printSQLException(e);
                     parent.stopped = true;
-                    System.out.println("Does change state");
                     System.exit(2);
                 }
             } catch (IOException e) {
@@ -132,7 +98,7 @@ public class Main
 
             // Receiving the data from the interface
             try {
-                String catName = this.readLine();
+                String catName = fromInterface.readUTF();
                 double moddedAmt = fromInterface.readDouble();
 
                 try {
@@ -163,10 +129,8 @@ public class Main
 
             // Receiving the data from the interface
             try {
-                String catName = this.readLine();
-                System.out.println("Name: " + catName);
+                String catName = fromInterface.readUTF();
                 double budgetAmt = fromInterface.readDouble();
-                System.out.println("Amount: " + String.valueOf(budgetAmt));
 
                 try {
                     catMan.addCategory(catName, budgetAmt);
