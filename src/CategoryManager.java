@@ -5,45 +5,38 @@ import java.util.ArrayList;
 
 
 public class CategoryManager {
-    public static void printSQLException(SQLException e) {
-        e.printStackTrace(System.err);
-        System.err.println("SQLState: " + e.getSQLState());
-        System.err.println("Error Code: " + e.getErrorCode());
-        System.err.println("Message: " + e.getMessage());
-    }
-
-
     Connection dbConn;
-    public CategoryManager() {
+    public CategoryManager() throws SQLException {
         // Creating a database connection
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
             dbConn = DriverManager.getConnection(
                 "jdbc:mysql://127.0.0.1:3306/budgetApp?user=michael&password=clinesworth"
             );
-        } catch (SQLException e) {
+        /*} catch (SQLException e) {
             printSQLException(e);
-            System.exit(1);
-        } catch (Exception e) {
+            System.exit(1);*/
+        } catch (ClassNotFoundException e) {
             e.printStackTrace(System.err);
             System.exit(1);
-        } 
+        }
     }
 
 
-    public int getNumCategories() {
+    public int getNumCategories() throws SQLException {
         // Using count(*) to get the total number of spending categories
-        String queryStr = "SELECT COUNT(*) FROM category AS numCats";
-        try (Statement stmt = dbConn.createStatement()) {
+        String queryStr = "SELECT COUNT(*) AS numCats FROM category;";
+        //try (Statement stmt = dbConn.createStatement()) {
+            Statement stmt = dbConn.createStatement();
             ResultSet rs = stmt.executeQuery(queryStr);
             rs.next();
             int numCats = rs.getInt("numCats");
             return numCats;
-        } catch (SQLException e) {
+        /*} catch (SQLException e) {
             printSQLException(e);
-        }
+        }*/
 
-        return -1;
+        //return -1;
     }
 
 
@@ -62,11 +55,12 @@ public class CategoryManager {
 
 
     // Querying for all records, putting them in an ArrayList and returning it
-    public ArrayList<CatRecord> getRecords() {
+    public ArrayList<CatRecord> getRecords() throws SQLException {
         String queryStr = "SELECT * FROM category";
-        ArrayList<CatRecord> recs = null;
+        ArrayList<CatRecord> recs = new ArrayList<CatRecord>();
 
-        try (Statement stmt = dbConn.createStatement()) {
+        //try (Statement stmt = dbConn.createStatement()) {
+            Statement stmt = dbConn.createStatement();
             ResultSet rs = stmt.executeQuery(queryStr);
             while (rs.next()) {
                 String name = rs.getString("name");
@@ -78,10 +72,49 @@ public class CategoryManager {
             }
 
             return recs;
-        } catch (SQLException e) {
+       /* } catch (SQLException e) {
             printSQLException(e);
-        }
+        }*/
 
-        return recs;
+        //return recs;
+    }
+
+
+    // Updates the budgeted amount for a single spending category
+    public void updateCategory(String catName, double moddedAmount) throws SQLException {
+        String queryStr = "UPDATE category SET budgeted=? WHERE name=?";
+        //try (PreparedStatement pstmt = dbConn.prepareStatement(queryStr)) {
+            PreparedStatement pstmt = dbConn.prepareStatement(queryStr);
+            dbConn.setAutoCommit(false);
+
+            pstmt.setDouble(1, moddedAmount);
+            pstmt.setString(2, catName);
+            pstmt.executeUpdate();
+
+            dbConn.commit();
+
+/*        } catch (SQLException e) {
+            printSQLException(e);
+        }*/
+    }
+
+
+    // Updates the budgeted amount for a single spending category
+    public void addCategory(String catName, double budgetAmount) throws SQLException {
+        String queryStr =
+            "INSERT INTO category(name, budgeted, spent) VALUES (?, ?, 0.00)";
+        //try (PreparedStatement pstmt = dbConn.prepareStatement(queryStr)) {
+            PreparedStatement pstmt = dbConn.prepareStatement(queryStr);
+            dbConn.setAutoCommit(false);
+
+            pstmt.setString(1, catName);
+            pstmt.setDouble(2, budgetAmount);
+            pstmt.executeUpdate();
+
+            dbConn.commit();
+
+        /*} catch (SQLException e) {
+            printSQLException(e);
+        }*/
     }
 }

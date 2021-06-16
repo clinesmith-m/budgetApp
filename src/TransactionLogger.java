@@ -41,7 +41,7 @@ public class TransactionLogger
     }
 
 
-    public void logEvent(String actionType, double amount, String memo)
+    public void logEvent(String actionType, String category, double amount, String memo)
     {
         // Creating the timestamp for recording datetime here
         String timeStamp = new SimpleDateFormat("MMddyyHHmmss")
@@ -49,16 +49,17 @@ public class TransactionLogger
 
         // Making a prepared statement for the transaction
         String actionStr = 
-            "INSERT INTO transaction(datetime, action_type, action_amount, memo)";
-        actionStr += "VALUES (?, ?, ?, ?)";
+            "INSERT INTO transaction(datetime, action_type, spending_category, action_amount, memo)";
+        actionStr += "VALUES (?, ?, ?, ?, ?)";
         try (PreparedStatement pstmt = dbConn.prepareStatement(actionStr))
         {
             dbConn.setAutoCommit(false);
 
             pstmt.setString(1, timeStamp);
             pstmt.setString(2, actionType);
-            pstmt.setDouble(3, amount);
-            pstmt.setString(4, memo);
+            pstmt.setString(3, category);
+            pstmt.setDouble(4, amount);
+            pstmt.setString(5, memo);
             pstmt.executeUpdate();
 
             dbConn.commit();
