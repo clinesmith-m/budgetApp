@@ -1,11 +1,14 @@
 import tkinter as tk
 import tkinter.ttk as ttk
+from socket import *
+import struct
+import time
 
 class GUI(tk.Tk):
-    def __init__(self, parent, categories):
+    def __init__(self, parent):
         tk.Tk.__init__(self, parent)
         self.parent = parent
-        self.categories = categories
+        self.categories = []
         self.setFrame()
         self.setInteractions()
         # Optimizing by breaking all of the visual elements that need to be 
@@ -20,6 +23,100 @@ class GUI(tk.Tk):
         self.setStatLogs()
 
 
+    # All the necessary netcode helper functions
+
+    # Initializes new connection with the backend
+    def makeConn(self):
+        try:
+            sock = socket(AF_INET, SOCK_STREAM)
+            sock.connect( ("127.0.0.1", 45601) )
+            return sock
+        except:
+            print("Connection to backend failed")
+            exit(1)
+
+
+    # Receives and returns 4 byte big-endian int
+    def recvInt(self, conn):
+        data = b''
+        while (len(data) < 4):
+            retVal = conn.recv(4 - len(data))
+            data += retVal
+            if len(retVal) == 0:
+                break
+
+        num = int.from_bytes(data, byteorder="big", signed=False)
+        return num
+
+
+    # Receives a double and returns it
+    def recvDouble(self, conn):
+        data = b''
+        while (len(data) < 8):
+            retVal = conn.recv(8 - len(data))
+            data += retVal
+            if len(retVal) == 0:
+                break
+
+        doub = struct.unpack("!d", data)
+        doub = round(doub[0], 2)
+        return doub
+
+    # Receives a string up to a newline, and returns the string
+    def recvLine(self, conn):
+        msg = b''
+        while True:
+            ch = conn.recv(1)
+            msg += ch
+            if ch == b'\n':
+                break
+            elif len(ch) == 0:
+                return 0
+
+        return msg.decode()[2:-1]
+
+
+    # Sends 4 byte big-endian int
+    def sendInt(self, conn, rawNum):
+        num = int.to_bytes(rawNum, byteorder="big", signed=True, length=4)
+        conn.send(num)
+
+
+    # Sends an 8-byte double
+    def sendDouble(self, conn, rawFloat):
+        data = bytearray(struct.pack("!d", rawFloat))
+        conn.send(data)
+
+
+    # Sends a string that ends with a newline
+    def sendLine(self, conn, msg):
+        msg += "\n"
+        conn.send(msg.encode())
+
+
+    # Updating all of the spending categories
+    def updateCategories(self):
+        self.categories = []
+
+        updateSock = self.makeConn()
+        updateSock.send("GCAT".encode())
+
+        # Grabbing the individual records
+        numCats = self.recvInt(updateSock)
+        for i in range(0, numCats):
+            catName = self.recvLine(updateSock)
+            budgeted = self.recvDouble(updateSock)
+            spent = self.recvDouble(updateSock)
+            self.categories.append( (catName, budgeted, spent) )
+
+        # Sending confirmation and closing the socket
+        updateSock.send("T".encode())
+        updateSock.close()
+
+
+    # Actually creating the GUI
+
+    # Setting up the frame
     def setFrame(self):
         self.frame = ttk.Frame(self, padding="3 3 12 12")
         self.frame.grid(column=0, row=0)#, sticky=(N, W, E, S))
@@ -28,6 +125,7 @@ class GUI(tk.Tk):
         self.resizable(True, True)
 
 
+    # Creating the visual elements for the spending categories
     def setCatLogs(self):
         # Killing the widgets for the previous logs
         for widget in self.catLogs:
@@ -39,6 +137,9 @@ class GUI(tk.Tk):
         sectionLabel = tk.Label(text="Spending Categories", width=32)
         sectionLabel.grid(row=catIndex, column=5, pady=5, padx=5)
         self.catLogs.append(sectionLabel)
+
+        # Adding the updated list of categories
+        self.updateCategories()
 
         # Displaying all the budget categories
         catIndex += 1
@@ -87,8 +188,8 @@ class GUI(tk.Tk):
         self.catNameBox = tk.Entry(width=32)
         self.catNameBox.grid(row=currRow, column=1, pady=5, padx=5)
 
-        self.catAmountBox = tk.Entry(width=10)
-        self.catAmountBox.grid(row=currRow, column=2, pady=5, padx=5)
+        self.catAmtBox = tk.Entry(width=10)
+        self.catAmtBox.grid(row=currRow, column=2, pady=5, padx=5)
 
         self.modCatBtn = tk.Button(text="Modify", command=self.modCategory)
         self.modCatBtn.grid(row=currRow, column=3, pady=5, padx=5)
@@ -245,12 +346,57 @@ class GUI(tk.Tk):
 
     def modCategory(self):
         catName = self.catNameBox.get()
+        try:
+            catAmt = float(self.catAmtBox.get())
+        except:
+            self.alertText.set("Invalid amount")
+            return
+
+        # Checking for invalid category names
+        if catName == "":
+            self.alertText.set("Name field left blank")
+
+        found = False
+        for cat in self.categories:
+            if catName == cat[0]:
+                found = True
+                break
+        if not found:
+            self.alertText.set("Category doesn't exist")
+
+        # Modifying the category
+        modSock = self.makeConn()
+        modSock.send("MCAT".encode())
+        self.sendLine(modSock, catName)
+        self.sendDouble(modSock, catAmount)
+
         self.alertText.set("Category modified")
+
+        # Updating the interface
+        self.setCatLogs()
 
 
     def addCategory(self):
         catName = self.catNameBox.get()
+        try:
+            catAmount = float(self.catAmtBox.get())
+        except:
+            self.alertText.set("Invalid amount")
+            return
+
+        # Checking for invalid category names
+        if catName == "":
+            self.alertText.set("Name field left blank")
+
+        # Adding the category
+        addSock = self.makeConn()
+        addSock.send("ACAT".encode())
+        self.sendLine(addSock, catName)
+        self.sendDouble(addSock, catAmount)
         self.alertText.set("Category added")
+
+        # Updating the interface
+        self.setCatLogs()
 
 
     def reportSingleExp(self):
@@ -290,6 +436,19 @@ class GUI(tk.Tk):
 
 
 if __name__ == "__main__":
-    app = GUI(None, [("Hentai", 5000.00, 200.69), ("Johnny Sins Videos", 10000.00, 0.99)])
-    app.title("STI Expense Tracker")
+    # The sleep statement makes sure the java backend has enough time to start
+    # listening for connections.
+    # This is dumb, bad, and potentially inconsistent, but this is a personal
+    # project and it works, so...
+    time.sleep(2)
+
+    # This stuff is fine
+    app = GUI(None)
+    app.title("STI Expense Tracker") # For the most part
     app.mainloop()
+
+    # Telling the Java backend to shut down
+    sock = socket(AF_INET, SOCK_STREAM)
+    sock.connect( ("127.0.0.1", 45601) )
+    sock.send("DISC".encode())
+    sock.close()
