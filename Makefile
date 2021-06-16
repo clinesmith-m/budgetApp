@@ -5,7 +5,7 @@ JFLAGS = -g
 
 CLASSES = src/CategoryManager.java src/TransactionLogger.java src/TestClass.java src/Main.java
 
-default: run
+default: compile
 
 run: compile
 	java src.Main
