@@ -284,6 +284,48 @@ class GUI(tk.Tk):
         pass
 
 
+    # Updating a single category and redrawing the associated widget
+    def reDrawCat(self, catName):
+        # Getting the tuple for the category
+        catIndex = None
+        for i in range(0, len(self.categories)):
+            if catName == self.categories[i][0]:
+                catIndex = i
+                break
+
+        # Getting the category from the backend
+        sock = self.makeConn()
+        sock.send("GCBN".encode())
+        self.sendLine(sock, catName)
+        budgeted = self.recvDouble(sock)
+        spent = self.recvDouble(sock)
+
+        # Updating the category tuple
+        self.categories[catIndex] = (catName, budgeted, spent)
+
+        # Sending confirmation and closing the socket
+        sock.send("T".encode())
+        sock.close()
+
+        # Killing and redrawing the widget
+        widgetIndex = catIndex + 1
+        self.catLogs[widgetIndex].destroy()
+
+        labelText = self.categories[catIndex][0] + "\n"
+        labelText += str(round(self.categories[catIndex][1], 2)) + "\n" 
+        labelText += str(round(self.categories[catIndex][2], 2))
+
+        currLabel = tk.Label(
+            text=labelText, 
+            background="white", 
+            relief="raised", 
+            width=32
+        )
+
+        currLabel.grid(row=widgetIndex+1, column=5, pady=5, padx=8)
+        self.catLogs[widgetIndex] = currLabel        
+
+
     def setInteractions(self):
         # Creating the entry boxes for actual interactions
 
@@ -487,10 +529,9 @@ class GUI(tk.Tk):
         modSock.recv(1)
         modSock.close()
 
-        self.alertText.set("Category modified")
-
         # Updating the interface
-        self.setCatLogs()
+        self.reDrawCat(catName)
+        self.alertText.set("Category modified")
 
 
     def addCategory(self):
@@ -527,9 +568,58 @@ class GUI(tk.Tk):
 
 
     def reportSingleExp(self):
+        # Getting the values from all the entry boxes
         catName = self.singleExpCat.get()
-        alertTxt = "Le text: " + catName
-        self.alertText.set(alertTxt)
+        memo = self.singleExpMemo.get()
+        amt = self.singleExpAmt.get()
+
+        # Checking for invalid entries
+
+        # Starting with the category name
+        if catName == "":
+            self.alertText.set("Category field left blank")
+            return
+
+        found = False
+        for cat in self.categories:
+            if catName == cat[0]:
+                found = True
+                break
+
+        if not found:
+            self.alertText.set("Category doesn't exist")
+            return
+
+        # Then the memo
+        if memo == "":
+            # Sending a default memo instead of an empty string, just because I
+            # don't want to mess with sending and empty string through a socket
+            memo = "No memo needed"
+
+        elif len(memo) > 64:
+            self.alertText.set("Memo is too long")
+            return
+
+        # And lastly the amount
+        try:
+            amt = float(amt)
+        except:
+            self.alertText.set("Invalid amount")
+            return
+
+        # Finally, sending the info to the backend
+        sock = self.makeConn()
+        sock.send("LOTE".encode())
+        self.sendLine(sock, catName)
+        self.sendLine(sock, memo)
+        self.sendDouble(sock, amt)
+        sock.recv(1)
+        sock.close()
+
+        # Updating the interface
+        self.reDrawCat(catName)
+
+        self.alertText.set("Transaction Logged")
 
 
     def createRecExp(self):
@@ -690,8 +780,36 @@ class GUI(tk.Tk):
 
     def reportSingleInc(self):
         memo = self.singleIncMemo.get()
-        alertTxt = "Le text: " + memo
-        self.alertText.set(alertTxt)
+        amt = self.singleIncAmt.get()
+
+        # Checking for invalid entries
+
+        # Starting with the memo
+        if memo == "":
+            self.alertText.set("Memo field left blank")
+            return
+
+        if len(memo) > 64:
+            self.alertText.set("Memo is too long")
+            return
+
+        # Then the amount
+        try:
+            amt = float(amt)
+        except:
+            self.alertText.set("Invalid Amount")
+            return
+
+        # Sending the event to the backend
+        sock = self.makeConn()
+        sock.send("LOTI".encode())
+        self.sendLine(sock, memo)
+        self.sendDouble(sock, amt)
+        sock.recv(1)
+        sock.close()
+
+        # Updating the interface
+        self.alertText.set("Income Logged")
 
 
 if __name__ == "__main__":

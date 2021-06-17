@@ -79,6 +79,34 @@ public class Main
         }
 
 
+        // Sending a single spending category by name
+        private void sendCategory() {
+            CategoryManager catMan = new CategoryManager();
+
+            try {
+                // Getting the category name from the interface
+                String catName = fromInterface.readUTF();
+
+                // Grabbing the record and sending it to the interface
+                CategoryManager.CatRecord rec = catMan.getRecord(catName);
+
+                toInterface.writeDouble(rec.budgeted);
+                toInterface.writeDouble(rec.spent);
+
+                // Receiving and discarding the one-byte confirmation string
+                byte confirmation = fromInterface.readByte();
+
+            } catch (SQLException e) {
+                printSQLException(e);
+                parent.stopped = true;
+                System.exit(2);
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }
+        }
+
+
         // Modifies a single, already-existing spending category
         public void modCategory() {
             CategoryManager catMan = new CategoryManager();
@@ -195,7 +223,7 @@ public class Main
                 byte confirmation = fromInterface.readByte();
 
             } catch (SQLException e) {
-                System.err.println("Database connect rejected");
+                this.printSQLException(e);
                 e.printStackTrace(System.err);
                 System.exit(2);
             } catch (IOException e) {
@@ -272,7 +300,54 @@ public class Main
                 byte confirmation = fromInterface.readByte();
 
             } catch (SQLException e) {
-                System.err.println("Database connect rejected");
+                this.printSQLException(e);
+                e.printStackTrace(System.err);
+                System.exit(2);
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }            
+        }
+
+
+        // Sends a single expenditure to the database
+        public void logExpenditure() {
+            TransactionLogger tLog = new TransactionLogger();
+
+            try {
+                String category = fromInterface.readUTF();
+                String memo = fromInterface.readUTF();
+                double amount = fromInterface.readDouble();
+
+                tLog.logEvent(category, memo, amount);
+
+                toInterface.writeBytes("T");
+
+            } catch (SQLException e) {
+                this.printSQLException(e);
+                e.printStackTrace(System.err);
+                System.exit(2);
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }            
+        }
+
+
+        // Sends one-time income to the database
+        public void logIncome() {
+            TransactionLogger tLog = new TransactionLogger();
+
+            try {
+                String memo = fromInterface.readUTF();
+                double amount = fromInterface.readDouble();
+
+                tLog.logEvent(memo, amount);
+
+                toInterface.writeBytes("T");
+
+            } catch (SQLException e) {
+                this.printSQLException(e);
                 e.printStackTrace(System.err);
                 System.exit(2);
             } catch (IOException e) {
@@ -298,6 +373,8 @@ public class Main
                 // Calling the function associated with the command
                 if (command.equals("GCAT")) {
                     sendCategories();
+                } else if (command.equals("GCBN")) {
+                    sendCategory();
                 } else if (command.equals("MCAT")) {
                     modCategory();
                 } else if (command.equals("ACAT")) {
@@ -314,6 +391,10 @@ public class Main
                     this.cancelMonthlyInc();
                 } else if (command.equals("GMNI")) {
                     this.getMonthlyIncs();
+                } else if (command.equals("LOTE")) {
+                    this.logExpenditure();
+                } else if (command.equals("LOTI")) {
+                    this.logIncome();
                 } else if (command.equals("DISC")) {
                     System.out.println("Ordering shutdown");
                     parent.stopped = true;

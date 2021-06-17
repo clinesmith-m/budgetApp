@@ -41,7 +41,6 @@ public class CategoryManager {
         ResultSet rs = stmt.executeQuery(queryStr);
         rs.next();
         int numCats = rs.getInt("numCats");
-        System.out.println("Categories queried: " + numCats);
 
         // Closing the DB connection
         dbConn.close();
@@ -87,6 +86,30 @@ public class CategoryManager {
         dbConn.close();
 
         return recs;
+    }
+
+
+    // Querying for a single category by name and returning it
+    public CatRecord getRecord(String name) throws SQLException {
+        Connection dbConn = getDBConn();
+
+        // Creating and running the query
+        String queryStr = "SELECT * FROM category WHERE name=?";
+        PreparedStatement pstmt = dbConn.prepareStatement(queryStr);
+        dbConn.setAutoCommit(false);
+        pstmt.setString(1, name);
+        ResultSet rs = pstmt.executeQuery();
+
+        // Making the CatRecord object
+        rs.next();
+        double budgeted = rs.getDouble("budgeted");
+        double spent = rs.getDouble("spent");
+        CatRecord rec = new CatRecord(name, budgeted, spent);
+
+        // Closing the DB connection
+        dbConn.close();
+
+        return rec;
     }
 
 
