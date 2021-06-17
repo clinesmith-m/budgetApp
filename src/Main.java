@@ -2,6 +2,7 @@ package src;
 
 import java.net.*;
 import java.io.*;
+import java.util.ArrayList;
 import java.sql.SQLException;
 import java.nio.charset.StandardCharsets;
 
@@ -126,6 +127,161 @@ public class Main
         }
 
 
+        // Creates a new monthly expense
+        public void addMonthlyExp() {
+            MonthlyManager monthMan = new MonthlyManager();
+
+            try {
+                String memo = fromInterface.readUTF();
+                double amt = fromInterface.readDouble();
+                short numMonths = fromInterface.readShort();
+
+                monthMan.addMonthlyExp(memo, amt, numMonths);
+
+                toInterface.writeBytes("T");
+
+            } catch (SQLException e) {
+                this.printSQLException(e);
+                parent.stopped = true;
+                System.exit(2);
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }            
+        }
+
+
+        // Cancels a monthly expense
+        public void cancelMonthlyExp() {
+            MonthlyManager monthMan = new MonthlyManager();
+
+            try {
+                String memo = fromInterface.readUTF();
+
+                monthMan.cancelMonthlyExp(memo);
+
+                toInterface.writeBytes("T");
+
+            } catch (SQLException e) {
+                this.printSQLException(e);
+                parent.stopped = true;
+                System.exit(2);
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }            
+        }
+
+
+        // Gets all of the monthly expenses and sends them to the interface
+        public void getMonthlyExps() {
+            MonthlyManager monthMan = new MonthlyManager();
+
+            try {
+                // Getting the total number of records and sending it
+                int numExps = monthMan.getNumMonthlyExps();
+                toInterface.writeInt(numExps);
+
+                // Then getting the records and sending those
+                ArrayList<MonthlyManager.MonthlyExpRecord> exps =
+                        monthMan.getMonthlyExps();
+
+                for (MonthlyManager.MonthlyExpRecord rec : exps) {
+                    toInterface.writeUTF(rec.memo);
+                    toInterface.writeDouble(rec.amt);
+                }
+
+                // Getting and throwing away the confirmation
+                byte confirmation = fromInterface.readByte();
+
+            } catch (SQLException e) {
+                System.err.println("Database connect rejected");
+                e.printStackTrace(System.err);
+                System.exit(2);
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }            
+        }
+
+
+        // Creates a new monthly income
+        public void addMonthlyInc() {
+            MonthlyManager monthMan = new MonthlyManager();
+
+            try {
+                String memo = fromInterface.readUTF();
+                double amt = fromInterface.readDouble();
+
+                monthMan.addMonthlyInc(memo, amt);
+
+                toInterface.writeBytes("T");
+
+            } catch (SQLException e) {
+                this.printSQLException(e);
+                parent.stopped = true;
+                System.exit(2);
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }            
+        }
+
+
+        // Cancels a monthly income
+        public void cancelMonthlyInc() {
+            MonthlyManager monthMan = new MonthlyManager();
+
+            try {
+                String memo = fromInterface.readUTF();
+
+                monthMan.cancelMonthlyInc(memo);
+
+                toInterface.writeBytes("T");
+
+            } catch (SQLException e) {
+                this.printSQLException(e);
+                parent.stopped = true;
+                System.exit(2);
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }            
+        }
+
+
+        // Gets all of the monthly income streams and sends them to the interface
+        public void getMonthlyIncs() {
+            MonthlyManager monthMan = new MonthlyManager();
+
+            try {
+                // Getting the total number of records and sending it
+                int numIncs = monthMan.getNumMonthlyIncs();
+                toInterface.writeInt(numIncs);
+
+                // Then getting the records and sending those
+                ArrayList<MonthlyManager.MonthlyIncRecord> incs =
+                        monthMan.getMonthlyIncs();
+
+                for (MonthlyManager.MonthlyIncRecord rec : incs) {
+                    toInterface.writeUTF(rec.memo);
+                    toInterface.writeDouble(rec.amt);
+                }
+
+                // Getting and throwing away the confirmation
+                byte confirmation = fromInterface.readByte();
+
+            } catch (SQLException e) {
+                System.err.println("Database connect rejected");
+                e.printStackTrace(System.err);
+                System.exit(2);
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }            
+        }
+
+
         // The run function listens for a 4 letter code from the connection
         public void run()
         {
@@ -146,6 +302,18 @@ public class Main
                     modCategory();
                 } else if (command.equals("ACAT")) {
                     addCategory();
+                } else if (command.equals("AMNE")) {
+                    this.addMonthlyExp();
+                } else if (command.equals("CMNE")) {
+                    this.cancelMonthlyExp();
+                } else if (command.equals("GMNE")) {
+                    this.getMonthlyExps();
+                } else if (command.equals("AMNI")) {
+                    this.addMonthlyInc();
+                } else if (command.equals("CMNI")) {
+                    this.cancelMonthlyInc();
+                } else if (command.equals("GMNI")) {
+                    this.getMonthlyIncs();
                 } else if (command.equals("DISC")) {
                     System.out.println("Ordering shutdown");
                     parent.stopped = true;

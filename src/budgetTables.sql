@@ -13,3 +13,14 @@ memo varchar(64),
 primary key (datetime),
 foreign key (spending_category) references category(name),
 CHECK (datetime LIKE "[0-1][0-9][0-3][0-9][0-9][0-9][0-9][0-9][0-5][0-9][0-5][0-9]"));
+
+CREATE TABLE monthly_expense (
+memo varchar(32),
+amount decimal(7,2),
+months smallint DEFAULT -1,
+primary key (memo));
+
+CREATE TABLE monthly_income (
+memo varchar(32),
+amount decimal(7,2),
+primary key (memo));

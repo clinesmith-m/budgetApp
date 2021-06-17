@@ -9,16 +9,18 @@ class GUI(tk.Tk):
         tk.Tk.__init__(self, parent)
         self.parent = parent
         self.categories = []
+        self.monthlyExps = []
+        self.monthlyIncs = []
         self.setFrame()
         self.setInteractions()
         # Optimizing by breaking all of the visual elements that need to be 
         # queried for into seperate catagories so they can be updated separately
         self.catLogs = []
-        self.setCatLogs()
+        self.setCatLogs(constructorCall=True)
         self.recExpLogs = []
-        self.setRecExpLogs()
+        self.setRecExpLogs(constructorCall=True)
         self.recIncLogs = []
-        self.setRecIncLogs()
+        self.setRecIncLogs(constructorCall=True)
         self.statLogs = []
         self.setStatLogs()
 
@@ -119,6 +121,44 @@ class GUI(tk.Tk):
         updateSock.close()
 
 
+    # Updating the list of monthly expenses
+    def updateMonthlyExps(self):
+        self.monthlyExps = []
+
+        updateSock = self.makeConn()
+        updateSock.send("GMNE".encode())
+
+        # Grabbing the individual records
+        numExps = self.recvInt(updateSock)
+        for i in range(0, numExps):
+            memo = self.recvLine(updateSock)
+            amount = self.recvDouble(updateSock)
+            self.monthlyExps.append( (memo, amount) )
+
+        # Sending confirmation and closing the socket
+        updateSock.send("T".encode())
+        updateSock.close()
+
+
+    # Updating the list of monthly expenses
+    def updateMonthlyIncs(self):
+        self.monthlyIncs = []
+
+        updateSock = self.makeConn()
+        updateSock.send("GMNI".encode())
+
+        # Grabbing the individual records
+        numIncs = self.recvInt(updateSock)
+        for i in range(0, numIncs):
+            memo = self.recvLine(updateSock)
+            amount = self.recvDouble(updateSock)
+            self.monthlyIncs.append( (memo, amount) )
+
+        # Sending confirmation and closing the socket
+        updateSock.send("T".encode())
+        updateSock.close()
+
+
     # Actually creating the GUI
 
     # Setting up the frame
@@ -131,8 +171,7 @@ class GUI(tk.Tk):
 
 
     # Creating the visual elements for the spending categories
-    def setCatLogs(self):
-        print("Setting cat logs")
+    def setCatLogs(self, hasNewData=True, constructorCall=False):
         # Killing the widgets for the previous logs
         for widget in self.catLogs:
             widget.destroy()
@@ -144,17 +183,15 @@ class GUI(tk.Tk):
         sectionLabel.grid(row=catIndex, column=5, pady=5, padx=5)
         self.catLogs.append(sectionLabel)
 
-        # Adding the updated list of categories
-        print("Num Categories before: " + str(len(self.categories)))
-        self.updateCategories()
-        print("Num Categories after: " + str(len(self.categories)))
+        # Adding the updated list of categories if necessary
+        if hasNewData:
+            self.updateCategories()
 
         # Displaying all the budget categories
         catIndex += 1
         for cat in self.categories:
             labelText = cat[0] + "\n" + str(round(cat[1], 2))\
                             + "\n" + str(round(cat[2], 2)) 
-            print("Label text:[" + labelText + "]")
             currLabel = tk.Label(
                 text=labelText, 
                 background="white", 
@@ -165,16 +202,85 @@ class GUI(tk.Tk):
             self.catLogs.append(currLabel)
             catIndex += 1
 
-
-    def setRecExpLogs(self):
-        pass
-
-
-    def setRecIncLogs(self):
-        pass
+        # Resetting the sections that come below, unless this is the initial
+        # construction of the object
+        if not constructorCall:
+            self.setRecExpLogs(hasNewData=False)
 
 
-    def setStatLogs(self):
+    def setRecExpLogs(self, hasNewData=True, constructorCall=False):
+        # Killing the widgets for the previous logs
+        for widget in self.recExpLogs:
+            widget.destroy()
+        self.recExpLogs = []
+
+        # Placing an overarching label over all the catLogs
+        yIndex = len(self.catLogs) + 1
+        sectionLabel = tk.Label(text="Monthly Expenses", width=32)
+        sectionLabel.grid(row=yIndex, column=5, pady=5, padx=5)
+        self.recExpLogs.append(sectionLabel)
+
+        # Adding the updated list of categories if necessary
+        if hasNewData:
+            self.updateMonthlyExps()
+
+        # Displaying all the budget categories
+        yIndex += 1
+        for exp in self.monthlyExps:
+            labelText = exp[0] + "\n" + str(round(exp[1], 2))
+            currLabel = tk.Label(
+                text=labelText, 
+                background="white", 
+                relief="raised", 
+                width=32
+            )
+            currLabel.grid(row=yIndex, column=5, pady=5, padx=8)
+            self.recExpLogs.append(currLabel)
+            yIndex += 1
+
+        # Resetting the sections that come below, unless this is the initial
+        # construction of the object
+        if not constructorCall:
+            self.setRecIncLogs(hasNewData=False)
+
+
+    def setRecIncLogs(self, hasNewData=True, constructorCall=False):
+        # Killing the widgets for the previous logs
+        for widget in self.recIncLogs:
+            widget.destroy()
+        self.recIncLogs = []
+
+        # Placing an overarching label over all the catLogs
+        yIndex = len(self.catLogs) + len(self.recExpLogs) + 1
+        sectionLabel = tk.Label(text="Monthly Income Streams", width=32)
+        sectionLabel.grid(row=yIndex, column=5, pady=5, padx=5)
+        self.recIncLogs.append(sectionLabel)
+
+        # Adding the updated list of categories if necessary
+        if hasNewData:
+            self.updateMonthlyIncs()
+
+        # Displaying all the budget categories
+        yIndex += 1
+        for inc in self.monthlyIncs:
+            labelText = inc[0] + "\n" + str(round(inc[1], 2))
+            currLabel = tk.Label(
+                text=labelText, 
+                background="white", 
+                relief="raised", 
+                width=32
+            )
+            currLabel.grid(row=yIndex, column=5, pady=5, padx=8)
+            self.recIncLogs.append(currLabel)
+            yIndex += 1
+
+        # Resetting the sections that come below, unless this is the initial
+        # construction of the object
+        if not constructorCall:
+            self.setStatLogs(hasNewData=False)
+
+
+    def setStatLogs(self, hasNewData=True):
         pass
 
 
@@ -378,11 +484,12 @@ class GUI(tk.Tk):
         modSock.send("MCAT".encode())
         self.sendLine(modSock, catName)
         self.sendDouble(modSock, catAmt)
+        modSock.recv(1)
+        modSock.close()
 
         self.alertText.set("Category modified")
 
         # Updating the interface
-        print("Update complete")
         self.setCatLogs()
 
 
@@ -412,9 +519,10 @@ class GUI(tk.Tk):
         self.sendLine(addSock, catName)
         self.sendDouble(addSock, catAmount)
         self.alertText.set("Category added")
+        addSock.recv(1)
+        addSock.close()
 
         # Updating the interface
-        print("Update complete")
         self.setCatLogs()
 
 
@@ -426,26 +534,158 @@ class GUI(tk.Tk):
 
     def createRecExp(self):
         memo = self.recExpMemo.get()
-        alertTxt = "Le text: " + memo
-        self.alertText.set(alertTxt)
+
+        # Checking for invalid amounts
+        try:
+            expAmount = float(self.recExpAmt.get())
+        except:
+            self.alertText.set("Invalid Amount")
+            return
+
+        # Checking for invalid memos
+        if memo == "":
+            self.alertText.set("Memo Field Left Blank")
+            return
+
+        found = False
+        for exp in self.monthlyExps:
+            if memo == exp[0]:
+                found = True
+                break
+
+        if found:
+            self.alertText.set("Monthly expense already exists")
+            return
+
+        if len(memo) > 32:
+            self.alertText.set("Memo is too long")
+            return
+
+        # Checking for invalid payment periods and setting it to -1 by default
+        # if the field is left blank
+        expLen = self.recExpLen.get()
+        if expLen == "":
+            expLen = -1
+        else:
+            try:
+                expLen = int(expLen)
+            except:
+                self.alertText.set("Invalid payment time period")
+
+        # Communicating with the backend
+        sock = self.makeConn()
+        sock.send("AMNE".encode())
+        self.sendLine(sock, memo)
+        self.sendDouble(sock, expAmount)
+        self.sendInt(sock, expLen)
+        sock.recv(1)
+        sock.close()
+
+        # Updating the interface
+        self.alertText.set("Monthly Expense Added")
+        self.setRecExpLogs()
 
 
     def cancelRecExp(self):
         memo = self.cancelExpMemo.get()
-        alertTxt = "Le text: " + memo
-        self.alertText.set(alertTxt)
+
+        # Checking for invalid memos
+        if memo == "":
+            self.alertText.set("Memo Field Left Blank")
+            return
+
+        found = False
+        for exp in self.monthlyExps:
+            if memo == exp[0]:
+                found = True
+                break
+
+        if not found:
+            self.alertText.set("Monthly expense doesn't exist")
+            return
+
+        # Communicating with the backend
+        sock = self.makeConn()
+        sock.send("CMNE".encode())
+        self.sendLine(sock, memo)
+        sock.recv(1)
+        sock.close()
+
+        # Updating the interface
+        self.alertText.set("Monthly Expense Cancelled")
+        self.setRecExpLogs()
 
 
     def createRecInc(self):
         memo = self.recIncMemo.get()
-        alertTxt = "Le text: " + memo
-        self.alertText.set(alertTxt)
+
+        # Checking for invalid amounts
+        try:
+            incAmount = float(self.recIncAmt.get())
+        except:
+            self.alertText.set("Invalid Amount")
+            return
+
+        # Checking for invalid memos
+        if memo == "":
+            self.alertText.set("Memo Field Left Blank")
+            return
+
+        found = False
+        for inc in self.monthlyIncs:
+            if memo == inc[0]:
+                found = True
+                break
+
+        if found:
+            self.alertText.set("Monthly income already exists")
+            return
+
+        if len(memo) > 32:
+            self.alertText.set("Memo is too long")
+            return
+
+        # Communicating with the backend
+        sock = self.makeConn()
+        sock.send("AMNI".encode())
+        self.sendLine(sock, memo)
+        self.sendDouble(sock, incAmount)
+        sock.recv(1)
+        sock.close()
+
+        # Updating the interface
+        self.alertText.set("Monthly Income Added")
+        self.setRecIncLogs()
 
 
     def cancelRecInc(self):
         memo = self.cancelIncMemo.get()
-        alertTxt = "Le text: " + memo
-        self.alertText.set(alertTxt)
+
+        # Checking for invalid memos
+        if memo == "":
+            self.alertText.set("Memo Field Left Blank")
+            return
+
+        found = False
+        for inc in self.monthlyIncs:
+            if memo == inc[0]:
+                found = True
+                break
+
+        if not found:
+            self.alertText.set("Monthly income doesn't exist")
+            return
+
+        # Communicating with the backend
+        sock = self.makeConn()
+        sock.send("CMNI".encode())
+        self.sendLine(sock, memo)
+        sock.recv(1)
+        sock.close()
+
+        # Updating the interface
+        self.alertText.set("Monthly Income Cancelled")
+        self.setRecIncLogs()
 
 
     def reportSingleInc(self):
