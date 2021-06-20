@@ -1,0 +1,9 @@
+#!/bin/bash
+
+javac -g src/MonthlyManager.java
+if ! java src.MonthlyManager; then
+    echo "Error: Last month not logged" >> monthly-error.txt
+else
+    echo "Done."
+fi
+rm src/*.class
