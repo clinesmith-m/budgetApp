@@ -357,6 +357,75 @@ public class Main
         }
 
 
+        // Sends the logs from the previous month to the interface
+        public void getPrevMonthLogs() {
+            MonthlyManager monthMan = new MonthlyManager();
+
+            try {
+                MonthlyManager.MonthRecord prevMonth = monthMan.getLastMonth();
+
+                toInterface.writeDouble(prevMonth.totInc);
+                toInterface.writeDouble(prevMonth.totExp);
+
+                byte confirmation = fromInterface.readByte();
+
+            } catch (SQLException e) {
+                this.printSQLException(e);
+                e.printStackTrace(System.err);
+                System.exit(2);
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }
+        }
+
+
+        // Sends the logs from the current year to the interface
+        public void getCurrYearLogs() {
+            MonthlyManager monthMan = new MonthlyManager();
+
+            try {
+                MonthlyManager.MonthRecord currYear = monthMan.getCurrentYear();
+
+                toInterface.writeDouble(currYear.totInc);
+                toInterface.writeDouble(currYear.totExp);
+
+                byte confirmation = fromInterface.readByte();
+
+            } catch (SQLException e) {
+                this.printSQLException(e);
+                e.printStackTrace(System.err);
+                System.exit(2);
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }
+        }
+
+
+        // Sends all time total income and expenses to the interface
+        public void getAllTimeLogs() {
+            MonthlyManager monthMan = new MonthlyManager();
+
+            try {
+                MonthlyManager.MonthRecord allTime = monthMan.getFullHistory();
+
+                toInterface.writeDouble(allTime.totInc);
+                toInterface.writeDouble(allTime.totExp);
+
+                byte confirmation = fromInterface.readByte();
+
+            } catch (SQLException e) {
+                this.printSQLException(e);
+                e.printStackTrace(System.err);
+                System.exit(2);
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }
+        }
+
+
         // The run function listens for a 4 letter code from the connection
         public void run()
         {
@@ -395,6 +464,12 @@ public class Main
                     this.logExpenditure();
                 } else if (command.equals("LOTI")) {
                     this.logIncome();
+                } else if (command.equals("GPML")) {
+                    getPrevMonthLogs();
+                } else if (command.equals("GCYL")) {
+                    getCurrYearLogs();
+                } else if (command.equals("GATL")) {
+                    getAllTimeLogs();
                 } else if (command.equals("DISC")) {
                     System.out.println("Ordering shutdown");
                     parent.stopped = true;

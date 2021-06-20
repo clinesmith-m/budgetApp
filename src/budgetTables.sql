@@ -31,3 +31,8 @@ memo varchar(32),
 amount decimal(7,2),
 primary key (memo));
 
+CREATE TABLE past_month (
+date_code decimal(4) ZEROFILL, -- Recorded as mmyy
+tot_income decimal(7,2),
+tot_expense decimal(7,2),
+primary key (date_code));

@@ -22,7 +22,7 @@ class GUI(tk.Tk):
         self.recIncLogs = []
         self.setRecIncLogs(constructorCall=True)
         self.statLogs = []
-        self.setStatLogs()
+        self.setStatLogs(constructorCall=True)
 
 
     # All the necessary netcode helper functions
@@ -277,11 +277,85 @@ class GUI(tk.Tk):
         # Resetting the sections that come below, unless this is the initial
         # construction of the object
         if not constructorCall:
-            self.setStatLogs(hasNewData=False)
+            self.setStatLogs()
 
 
-    def setStatLogs(self, hasNewData=True):
-        pass
+    # Setting up stat logs.
+    def setStatLogs(self, constructorCall=False):
+        # Getting data if this is a constructor call. If it isn't this'll never
+        # need to update its data
+        if constructorCall:
+            # Getting data for the previous month
+            statSock = self.makeConn()
+            statSock.send("GPML".encode())
+            prevMonthInc = self.recvDouble(statSock)
+            prevMonthExp = self.recvDouble(statSock)
+            prevMonthSaved = prevMonthInc - prevMonthExp
+            statSock.send("T".encode())
+            statSock.close()
+
+            # The current year
+            statSock = self.makeConn()
+            statSock.send("GCYL".encode())
+            currYearInc = self.recvDouble(statSock)
+            currYearExp = self.recvDouble(statSock)
+            currYearSaved = currYearInc - currYearExp
+            statSock.send("T".encode())
+            statSock.close()
+
+            # And all time
+            statSock = self.makeConn()
+            statSock.send("GATL".encode())
+            allTimeInc = self.recvDouble(statSock)
+            allTimeExp = self.recvDouble(statSock)
+            allTimeSaved = allTimeInc - allTimeExp
+            statSock.send("T".encode())
+            statSock.close()
+
+            # Creating widgets for each set of logs, plus one for the overarching
+            # label
+            sectionLabelText = "Past Stats"
+            sectionLabel = tk.Label(text=sectionLabelText, width=32)
+            self.statLogs.append(sectionLabel)
+
+            prevMonthText = "Last Month\nIncome: " + str(round(prevMonthInc, 2)) + "\n"
+            prevMonthText += "Expenses: " + str(round(prevMonthExp, 2)) + " "
+            prevMonthText += "Saved: " + str(round(prevMonthSaved, 2))
+            prevMonthLabel = tk.Label(
+                text=prevMonthText,
+                background="white", 
+                relief="raised", 
+                width=32
+            )
+            self.statLogs.append(prevMonthLabel)
+
+            currYearText = "This Year\nIncome: " + str(round(currYearInc, 2)) + "\n"
+            currYearText += "Expenses: " + str(round(currYearExp, 2)) + " "
+            currYearText += "Saved: " + str(round(currYearSaved, 2))
+            currYearLabel = tk.Label(
+                text=currYearText,
+                background="white", 
+                relief="raised", 
+                width=32
+            )
+            self.statLogs.append(currYearLabel)
+
+            allTimeText = "All Time\nIncome: " + str(round(allTimeInc, 2)) + "\n"
+            allTimeText += "Expenses: " + str(round(allTimeExp, 2)) + " "
+            allTimeText += "Saved: " + str(round(allTimeSaved, 2))
+            allTimeLabel = tk.Label(
+                text=allTimeText,
+                background="white", 
+                relief="raised", 
+                width=32
+            )
+            self.statLogs.append(allTimeLabel)
+
+        # Setting the correct y index and putting all the labels on the grid
+        yIndex = len(self.catLogs) + len(self.recExpLogs) + len(self.recIncLogs) + 1
+        for widget in self.statLogs:
+            widget.grid(row=yIndex, column=5, pady=5, padx=8)
+            yIndex += 1
 
 
     # Updating a single category and redrawing the associated widget
