@@ -3,8 +3,8 @@ JFLAGS = -g
 .java.class:
 	javac $(JFLAGS) $*.java
 
-CLASSES = src/CategoryManager.java src/TransactionLogger.java src/TestClass.java\
-        src/MonthlyManager.java src/Main.java
+CLASSES = src/CategoryManager.java src/TransactionLogger.java\
+		src/MonthlyManager.java src/Main.java
 
 default: compile
 
