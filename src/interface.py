@@ -3,15 +3,15 @@ import tkinter.ttk as ttk
 from socket import *
 import struct
 import time
+import traceback
 
-class GUI(tk.Tk):
+class GUI(tk.Frame):
     def __init__(self, parent):
-        tk.Tk.__init__(self, parent)
+        self.setFrame(parent)
         self.parent = parent
         self.categories = []
         self.monthlyExps = []
         self.monthlyIncs = []
-        self.setFrame()
         self.setInteractions()
         # Optimizing by breaking all of the visual elements that need to be 
         # queried for into seperate catagories so they can be updated separately
@@ -162,12 +162,38 @@ class GUI(tk.Tk):
     # Actually creating the GUI
 
     # Setting up the frame
-    def setFrame(self):
-        self.frame = ttk.Frame(self, padding="3 3 12 12")
-        self.frame.grid(column=0, row=0)#, sticky=(N, W, E, S))
+    def setFrame(self, parent):
+        # Creating a mainframe to hold the canvas and the scrollbar
+        self.mainframe = tk.Frame(parent)
+        self.mainframe.pack(fill="both", expand=True)
+        # Making and packing the canvas and scrollbar
+        self.canvas = tk.Canvas(self.mainframe)
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.vsb = ttk.Scrollbar(self.mainframe, orient="vertical", command=self.canvas.yview)
+        self.vsb.pack(side="right", fill="y")
+        # Configuring the canvas
+        self.canvas.configure(yscrollcommand=self.vsb.set)
+        self.canvas.bind(
+            '<Configure>', 
+            lambda e: self.canvas.configure(
+                scrollregion=self.canvas.bbox("all")
+            )
+        )
+
+        # Making the frame that actually holds all the data, and making it a
+        # child of self.canvas
+        self.frame = tk.Frame(self.canvas)
+        self.canvas.create_window(
+            (0, 0),
+            window=self.frame,
+            height=1200,
+            width=800,
+            anchor="nw",
+            tags="self.frame"
+        )
+
         self.frame.columnconfigure(0, weight=1)
         self.frame.rowconfigure(0, weight=1)
-        self.resizable(True, True)
 
 
     # Creating the visual elements for the spending categories
@@ -179,7 +205,7 @@ class GUI(tk.Tk):
 
         # Placing an overarching label over all the catLogs
         catIndex = 1
-        sectionLabel = tk.Label(text="Spending Categories", width=32)
+        sectionLabel = tk.Label(self.frame, text="Spending Categories", width=32)
         sectionLabel.grid(row=catIndex, column=5, pady=5, padx=5)
         self.catLogs.append(sectionLabel)
 
@@ -193,6 +219,7 @@ class GUI(tk.Tk):
             labelText = cat[0] + "\n" + str(round(cat[1], 2))\
                             + "\n" + str(round(cat[2], 2)) 
             currLabel = tk.Label(
+                self.frame,
                 text=labelText, 
                 background="white", 
                 relief="raised", 
@@ -216,7 +243,7 @@ class GUI(tk.Tk):
 
         # Placing an overarching label over all the catLogs
         yIndex = len(self.catLogs) + 1
-        sectionLabel = tk.Label(text="Monthly Expenses", width=32)
+        sectionLabel = tk.Label(self.frame, text="Monthly Expenses", width=32)
         sectionLabel.grid(row=yIndex, column=5, pady=5, padx=5)
         self.recExpLogs.append(sectionLabel)
 
@@ -229,6 +256,7 @@ class GUI(tk.Tk):
         for exp in self.monthlyExps:
             labelText = exp[0] + "\n" + str(round(exp[1], 2))
             currLabel = tk.Label(
+                self.frame,
                 text=labelText, 
                 background="white", 
                 relief="raised", 
@@ -252,7 +280,7 @@ class GUI(tk.Tk):
 
         # Placing an overarching label over all the catLogs
         yIndex = len(self.catLogs) + len(self.recExpLogs) + 1
-        sectionLabel = tk.Label(text="Monthly Income Streams", width=32)
+        sectionLabel = tk.Label(self.frame, text="Monthly Income Streams", width=32)
         sectionLabel.grid(row=yIndex, column=5, pady=5, padx=5)
         self.recIncLogs.append(sectionLabel)
 
@@ -265,6 +293,7 @@ class GUI(tk.Tk):
         for inc in self.monthlyIncs:
             labelText = inc[0] + "\n" + str(round(inc[1], 2))
             currLabel = tk.Label(
+                self.frame,
                 text=labelText, 
                 background="white", 
                 relief="raised", 
@@ -315,13 +344,14 @@ class GUI(tk.Tk):
             # Creating widgets for each set of logs, plus one for the overarching
             # label
             sectionLabelText = "Past Stats"
-            sectionLabel = tk.Label(text=sectionLabelText, width=32)
+            sectionLabel = tk.Label(self.frame, text=sectionLabelText, width=32)
             self.statLogs.append(sectionLabel)
 
             prevMonthText = "Last Month\nIncome: " + str(round(prevMonthInc, 2)) + "\n"
             prevMonthText += "Expenses: " + str(round(prevMonthExp, 2)) + " "
             prevMonthText += "Saved: " + str(round(prevMonthSaved, 2))
             prevMonthLabel = tk.Label(
+                self.frame,
                 text=prevMonthText,
                 background="white", 
                 relief="raised", 
@@ -333,6 +363,7 @@ class GUI(tk.Tk):
             currYearText += "Expenses: " + str(round(currYearExp, 2)) + " "
             currYearText += "Saved: " + str(round(currYearSaved, 2))
             currYearLabel = tk.Label(
+                self.frame,
                 text=currYearText,
                 background="white", 
                 relief="raised", 
@@ -344,6 +375,7 @@ class GUI(tk.Tk):
             allTimeText += "Expenses: " + str(round(allTimeExp, 2)) + " "
             allTimeText += "Saved: " + str(round(allTimeSaved, 2))
             allTimeLabel = tk.Label(
+                self.frame,
                 text=allTimeText,
                 background="white", 
                 relief="raised", 
@@ -390,6 +422,7 @@ class GUI(tk.Tk):
         labelText += str(round(self.categories[catIndex][2], 2))
 
         currLabel = tk.Label(
+            self.frame,
             text=labelText, 
             background="white", 
             relief="raised", 
@@ -406,52 +439,56 @@ class GUI(tk.Tk):
         # Starting with the Create new category field
         currRow=1
         tk.Label(
+            self.frame,
             text="Create/Modify Category",
             width=32
         ).grid(row=currRow, column=1, padx=5)
 
         tk.Label(
+            self.frame,
             text="Cat_Name-Amt",
             width=24
         ).grid(row=currRow, column=2, padx=5)
 
         currRow += 1
-        self.catNameBox = tk.Entry(width=32)
+        self.catNameBox = tk.Entry(self.frame, width=32)
         self.catNameBox.grid(row=currRow, column=1, pady=5, padx=5)
 
-        self.catAmtBox = tk.Entry(width=10)
+        self.catAmtBox = tk.Entry(self.frame, width=10)
         self.catAmtBox.grid(row=currRow, column=2, pady=5, padx=5)
 
-        self.modCatBtn = tk.Button(text="Modify", command=self.modCategory)
+        self.modCatBtn = tk.Button(self.frame, text="Modify", command=self.modCategory)
         self.modCatBtn.grid(row=currRow, column=3, pady=5, padx=5)
 
-        self.addCatBtn = tk.Button(text="Add", command=self.addCategory)
+        self.addCatBtn = tk.Button(self.frame, text="Add", command=self.addCategory)
         self.addCatBtn.grid(row=currRow, column=4, pady=5, padx=5)
 
         # Allowing user to report expenditures
         # One time expenditures first
         currRow += 1
         tk.Label(
+            self.frame,
             text="Report One Time Expenditure",
             width=32
         ).grid(row=currRow, column=1, padx=5)
 
         tk.Label(
+            self.frame,
             text="Cat_Name-Amt-Memo",
             width=24
         ).grid(row=currRow, column=2, padx=5)
 
         currRow += 1
-        self.singleExpCat = tk.Entry(width=32)
+        self.singleExpCat = tk.Entry(self.frame, width=32)
         self.singleExpCat.grid(row=currRow, column=1, pady=5, padx=5)
 
-        self.singleExpAmt = tk.Entry(width=10)
+        self.singleExpAmt = tk.Entry(self.frame, width=10)
         self.singleExpAmt.grid(row=currRow, column=2, pady=5, padx=5)
 
-        self.singleExpMemo = tk.Entry(width=32)
+        self.singleExpMemo = tk.Entry(self.frame, width=32)
         self.singleExpMemo.grid(row=currRow, column=3, pady=5, padx=5)
 
-        self.singleExpBtn = tk.Button(text="Report", command=self.reportSingleExp)
+        self.singleExpBtn = tk.Button(self.frame, text="Report", command=self.reportSingleExp)
         self.singleExpBtn.grid(row=currRow, column=4, pady=5, padx=5)
 
         # Then recurring expenditures
@@ -459,108 +496,118 @@ class GUI(tk.Tk):
         # unto themselves, rather than slotting into existing categories
         currRow += 1
         tk.Label(
+            self.frame,
             text="Create Monthly Expenditure",
             width=32
         ).grid(row=currRow, column=1, padx=5)
 
         tk.Label(
+            self.frame,
             text="Memo-Amt-Num_Months",
             width=24
         ).grid(row=currRow, column=2, padx=5)
 
         currRow += 1
-        self.recExpMemo = tk.Entry(width=32)
+        self.recExpMemo = tk.Entry(self.frame, width=32)
         self.recExpMemo.grid(row=currRow, column=1, pady=5, padx=5)
 
-        self.recExpAmt = tk.Entry(width=10)
+        self.recExpAmt = tk.Entry(self.frame, width=10)
         self.recExpAmt.grid(row=currRow, column=2, pady=5, padx=5)
 
-        self.recExpLen = tk.Entry(width=4)
+        self.recExpLen = tk.Entry(self.frame, width=4)
         self.recExpLen.grid(row=currRow, column=3, pady=5, padx=5)
 
-        self.recExpBtn = tk.Button(text="Create", command=self.createRecExp)
+        self.recExpBtn = tk.Button(self.frame, text="Create", command=self.createRecExp)
         self.recExpBtn.grid(row=currRow, column=4, pady=5, padx=5)
 
         # Allowing user to cancel a monthly expense
         currRow += 1
         tk.Label(
+            self.frame,
             text="Cancel Monthly Expense",
             width=32
         ).grid(row=currRow, column=1, padx=5)
 
         tk.Label(
+            self.frame,
             text="Memo",
             width=24
         ).grid(row=currRow, column=2, padx=5)
 
         currRow += 1
-        self.cancelExpMemo = tk.Entry(width=32)
+        self.cancelExpMemo = tk.Entry(self.frame, width=32)
         self.cancelExpMemo.grid(row=currRow, column=1, pady=5, padx=5)
 
-        self.cancelExpBtn = tk.Button(text="Cancel", command=self.cancelRecExp)
+        self.cancelExpBtn = tk.Button(self.frame, text="Cancel", command=self.cancelRecExp)
         self.cancelExpBtn.grid(row=currRow, column=4, pady=5, padx=5)
 
         # Allowing user to create a monthly income
         currRow += 1
         tk.Label(
+            self.frame,
             text="Create Monthly Income",
             width=32
         ).grid(row=currRow, column=1, padx=5)
 
         tk.Label(
+            self.frame,
             text="Memo-Amt",
             width=24
         ).grid(row=currRow, column=2, padx=5)
 
         currRow += 1
-        self.recIncMemo = tk.Entry(width=32)
+        self.recIncMemo = tk.Entry(self.frame, width=32)
         self.recIncMemo.grid(row=currRow, column=1, pady=5, padx=5)
 
-        self.recIncAmt = tk.Entry(width=10)
+        self.recIncAmt = tk.Entry(self.frame, width=10)
         self.recIncAmt.grid(row=currRow, column=2, pady=5, padx=5)
 
-        self.recIncBtn = tk.Button(text="Create", command=self.createRecInc)
+        self.recIncBtn = tk.Button(self.frame, text="Create", command=self.createRecInc)
         self.recIncBtn.grid(row=currRow, column=4, pady=5, padx=5)
 
         # And cancel monthly income
         currRow += 1
         tk.Label(
+            self.frame,
             text="Cancel Monthly Income",
             width=32
         ).grid(row=currRow, column=1, padx=5)
 
         tk.Label(
+            self.frame,
             text="Memo",
             width=24
         ).grid(row=currRow, column=2, padx=5)
 
         currRow += 1
-        self.cancelIncMemo = tk.Entry(width=32)
+        self.cancelIncMemo = tk.Entry(self.frame, width=32)
         self.cancelIncMemo.grid(row=currRow, column=1, pady=5, padx=5)
 
-        self.cancelIncBtn = tk.Button(text="Cancel", command=self.cancelRecInc)
+        self.cancelIncBtn = tk.Button(self.frame, text="Cancel", command=self.cancelRecInc)
         self.cancelIncBtn.grid(row=currRow, column=4, pady=5, padx=5)
 
         # Also letting the user report one-time income
         currRow += 1
         tk.Label(
+            self.frame, 
             text="Report One Time Income",
             width=32
         ).grid(row=currRow, column=1, padx=5)
 
         tk.Label(
+            self.frame, 
             text="Memo-Amt",
             width=24
         ).grid(row=currRow, column=2, padx=5)
 
         currRow += 1
-        self.singleIncMemo = tk.Entry(width=32)
+        self.singleIncMemo = tk.Entry(self.frame, width=32)
         self.singleIncMemo.grid(row=currRow, column=1, pady=5, padx=5)
 
-        self.singleIncAmt = tk.Entry(width=10)
+        self.singleIncAmt = tk.Entry(self.frame, width=10)
         self.singleIncAmt.grid(row=currRow, column=2, pady=5, padx=5)
 
-        self.singleIncBtn = tk.Button(text="Report", command=self.reportSingleInc)
+        self.singleIncBtn = tk.Button(self.frame, text="Report", command=self.reportSingleInc)
         self.singleIncBtn.grid(row=currRow, column=4, pady=5, padx=5)
 
 
@@ -569,6 +616,7 @@ class GUI(tk.Tk):
         currRow += 1
         self.alertText = tk.StringVar()
         alertBox = tk.Label(
+            self.frame,
             textvariable=self.alertText, 
             width=32
         )
@@ -893,10 +941,15 @@ if __name__ == "__main__":
     # project and it works, so...
     time.sleep(2)
 
-    # This stuff is fine
-    app = GUI(None)
-    app.title("STI Expense Tracker") # For the most part
-    app.mainloop()
+    # The try/except is for debugging purposes only
+    try:
+        # This stuff is fine
+        root_window = tk.Tk()
+        app = GUI(root_window)
+        root_window.title("STI Expense Tracker") # For the most part
+        root_window.mainloop()
+    except:
+        traceback.print_exc()
 
     # Telling the Java backend to shut down
     sock = socket(AF_INET, SOCK_STREAM)
