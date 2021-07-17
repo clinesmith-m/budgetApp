@@ -48,7 +48,6 @@ class GUI(tk.Frame):
                 break
 
         num = int.from_bytes(data, byteorder="big", signed=False)
-        #print("RECEIVED NUM: " + str(num))
         return num
 
 
@@ -63,7 +62,6 @@ class GUI(tk.Frame):
 
         doub = struct.unpack("!d", data)
         doub = round(doub[0], 2)
-        #print("RECEIVED DOUBLE: " + str(doub))
         return doub
 
     # Receives a string up to a newline, and returns the string
@@ -79,7 +77,6 @@ class GUI(tk.Frame):
             if len(retVal) == 0:
                 return 0
 
-        #print("RECEIVED LINE: [" + msg.decode() + "]")
         return msg.decode()
 
 
@@ -187,7 +184,7 @@ class GUI(tk.Frame):
             (0, 0),
             window=self.frame,
             height=1200,
-            width=800,
+            width=960,
             anchor="nw",
             tags="self.frame"
         )
@@ -947,6 +944,7 @@ if __name__ == "__main__":
         root_window = tk.Tk()
         app = GUI(root_window)
         root_window.title("STI Expense Tracker") # For the most part
+        root_window.geometry("980x800")
         root_window.mainloop()
     except:
         traceback.print_exc()
