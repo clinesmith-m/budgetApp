@@ -136,6 +136,7 @@ public class CategoryManager {
     public void addCategory(String catName, double budgetAmount) throws SQLException {
         Connection dbConn = getDBConn();
 
+        // Adding all new categories to the category table
         String queryStr =
             "INSERT INTO category(name, budgeted, spent) VALUES (?, ?, 0.00)";
         PreparedStatement pstmt = dbConn.prepareStatement(queryStr);
@@ -146,6 +147,19 @@ public class CategoryManager {
         pstmt.executeUpdate();
 
         dbConn.commit();
+
+        // Then adding rollover categories to the rollover table
+        if (catName.endsWith("[R]"))
+        {
+            queryStr = "INSERT INTO rollover_category(name, baseline) VALUES (?,?)";
+            pstmt = dbConn.prepareStatement(queryStr);
+
+            pstmt.setString(1, catName);
+            pstmt.setDouble(2, budgetAmount);
+            pstmt.executeUpdate();
+
+            dbConn.commit();
+        }
 
         // Closing the DB connection
         dbConn.close();

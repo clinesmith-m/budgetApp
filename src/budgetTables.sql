@@ -36,3 +36,9 @@ date_code decimal(4) ZEROFILL, -- Recorded as mmyy
 tot_income decimal(7,2),
 tot_expense decimal(7,2),
 primary key (date_code));
+
+CREATE TABLE rollover_category (
+name varchar(32),
+baseline decimal(7,2),
+primary key (name),
+foreign key (name) references category(name));

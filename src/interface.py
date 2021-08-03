@@ -183,7 +183,9 @@ class GUI(tk.Frame):
         self.canvas.create_window(
             (0, 0),
             window=self.frame,
-            height=1200,
+            # TODO: Author's note: This variable will have to be changed
+            # periodically if more recurring monthly things are added
+            height=1620,
             width=960,
             anchor="nw",
             tags="self.frame"

@@ -420,13 +420,29 @@ public class MonthlyManager {
 
                 // Rolling over the budgeted amount if it's a rollover category
                 if (catName.endsWith("[R]")) {
+                    // Grabbing the amount spent from the current result set
                     double spent = rs.getDouble("spent");
 
+                    // Then getting the baseline from the rollover category
+                    // table
+                    queryStr = "SELECT baseline FROM rollover_category ";
+                    queryStr += "WHERE name=?";
+                    PreparedStatement baselineStmt = 
+                            dbConn.prepareStatement(queryStr);
+                    baselineStmt.setString(1, catName);
+                    ResultSet baselineRS = baselineStmt.executeQuery();
+                    double baseline = baselineRS.getDouble("baseline");
+
+                    // Getting the amount that's available at the end of the
+                    // current month
                     double diff = budgeted - spent;
-                    // Adding to the budget if diff is greater than 0, doing
-                    // nothing if it's less than 0
+                    // Adding to the budget if diff is greater than 0
                     if (diff > 0)
-                        budgeted += diff;
+                        budgeted = diff + baseline;
+                    // Setting the budget to the baseline if the category was
+                    // overbudget
+                    else
+                        budgeted = baseline;
                 }
 
                 // Adding the statement for this category to the update batch

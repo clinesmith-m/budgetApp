@@ -1,5 +1,6 @@
 #!/bin/bash
 
+cd /home/michael/practice/budgetApp
 make compile
 java src.Main &
 python3 src/interface.py
